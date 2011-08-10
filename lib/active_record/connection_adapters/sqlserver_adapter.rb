@@ -167,10 +167,9 @@ module ActiveRecord
       
       cattr_accessor :native_text_database_type, :native_binary_database_type, :native_string_database_type,
                      :log_info_schema_queries, :enable_default_unicode_types, :auto_connect,
-                     :cs_equality_operator, :lowercase_schema_reflection
+                     :cs_equality_operator, :lowercase_schema_reflection, :auto_connect_duration
       
       self.enable_default_unicode_types = true
-      
       
       def initialize(logger,config)
         @connection_options = config
@@ -309,6 +308,10 @@ module ActiveRecord
       def auto_connect
         @@auto_connect.is_a?(FalseClass) ? false : true
       end
+
+      def auto_connect_duration
+        @@auto_connect_duration ||= 10
+      end
       
       def native_string_database_type
         @@native_string_database_type || (enable_default_unicode_types ? 'nvarchar' : 'varchar') 
@@ -443,7 +446,7 @@ module ActiveRecord
         return false unless auto_connect
         @auto_connecting = true
         count = 0
-        while count <= 5
+        while count <= (auto_connect_duration / 2)
           sleep 2** count
           ActiveRecord::Base.did_retry_sqlserver_connection(self,count)
           return true if reconnect!
